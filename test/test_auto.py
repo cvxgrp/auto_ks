@@ -40,7 +40,7 @@ class TestAuto(unittest.TestCase):
         V_neg_sqrt_true = sqrtm(np.linalg.inv(V_true))
 
         def prox(params, t):
-            return auto_ks.KalmanSmootherParameters(params.A, W_neg_sqrt_true, C_true, params.V_neg_sqrt), 0.0
+            return auto_ks.KalmanSmootherParameters(params.A, params.W_neg_sqrt, params.C, params.V_neg_sqrt), 0.0
 
         params = auto_ks.KalmanSmootherParameters(
             A_true + 1e-2*np.random.randn(n, n),
@@ -49,7 +49,7 @@ class TestAuto(unittest.TestCase):
             V_neg_sqrt_true + .1*np.eye(p)
         )
 
-        params, info = auto_ks.tune(params, prox, y, K, K, lam, verbose=False, niter=25)
+        params, info = auto_ks.tune(params, prox, y, K, lam, verbose=True, niter=25, lr=1e-3)
 
         np.testing.assert_array_less(np.diff(info["losses"]), 0.0)
 

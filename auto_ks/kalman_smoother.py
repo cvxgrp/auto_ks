@@ -88,7 +88,7 @@ def kalman_smoother(kalman_smoother_parameters, y, K, lam):
     assert type(V_neg_sqrt) is np.ndarray or type(V_neg_sqrt) is np.matrix
     assert type(y) is np.ndarray
     assert type(K) is np.ndarray
-    assert type(lam) is float
+    assert isinstance(lam, numbers.Number) 
     assert y.ndim == 2
     assert A.ndim == 2
 
@@ -96,13 +96,13 @@ def kalman_smoother(kalman_smoother_parameters, y, K, lam):
     n, _ = A.shape
     z_size = (n + p) * T
 
-    assert A.shape == (n, n)
-    assert W_neg_sqrt.shape == (n, n)
-    assert C.shape == (p, n)
-    assert V_neg_sqrt.shape == (p, p)
-    assert y.shape == (T, p)
-    assert K.shape == (T, p)
-    assert lam > 0
+    np.testing.assert_array_equal(A.shape, (n, n))
+    np.testing.assert_array_equal(A.shape, (n, n))
+    np.testing.assert_array_equal(W_neg_sqrt.shape, (n, n))
+    np.testing.assert_array_equal(C.shape, (p, n))
+    np.testing.assert_array_equal(V_neg_sqrt.shape, (p, p))
+    np.testing.assert_array_equal(y.shape, (T, p))
+    np.testing.assert_array_equal(K.shape, (T, p))
 
     # First we form the least squares coefficient matrix D
     D = get_D(A, W_neg_sqrt, C, V_neg_sqrt, n, p, T, lam)

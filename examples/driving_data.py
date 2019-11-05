@@ -99,7 +99,7 @@ print("initial test loss", loss_auto)
 
 # run kalman smoother auto-tuning
 tic = time.time()
-params, info = auto_ks.tune(params_initial, prox, y, K & ~M_test, M, lam, lr=1e-2, verbose=True, niter=25)
+params, info = auto_ks.tune(params_initial, prox, y, K & ~M_test, lam, M=M, lr=1e-2, verbose=True, niter=25)
 toc = time.time()
 print("time", toc-tic, "s")
 xhat, yhat, DT = auto_ks.kalman_smoother(params, y, K & ~M_test, lam)

@@ -58,7 +58,7 @@ def test_loss(params):
 
 print("starting test loss:", test_loss(params))
 tic = time.time()
-params, info = auto_ks.tune(params, prox, y, K & ~M_test, M, lam, lr=1e-4, verbose=True, niter=50)
+params, info = auto_ks.tune(params, prox, y, K & ~M_test, lam, M=M, lr=1e-4, verbose=True, niter=50)
 toc = time.time()
 print("time", toc-tic, "s")
 xhat, yhat, _ = auto_ks.kalman_smoother(params, y, K & ~M_test, lam)

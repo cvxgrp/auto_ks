@@ -16,20 +16,27 @@ def prediction_loss(parameters, y, K, M, lam, grad=True):
         return L
 
 
-def tune(initial_parameters, prox, y, K, M, lam, niter=200, lr=1.0, fraction=0.5,
+def tune(initial_parameters, prox, y, K, lam, M=None, niter=200, lr=1.0, fraction=0.5,
          increase_rate=1.5, decrease_rate=0.5, verbose=True, callback=None):
     """
     Automatically fit a Kalman Smoother to data.
 
     Args:
         - initial_parameters: initial KalmanSmootherParameters object
-        - prox: Proximal operator for regularization. Returns a KalmanSmootherParameters object and value of regularization.
+        - prox: Proximal operator for regularization. Returns a
+            KalmanSmootherParameters object and value of regularization.
         - y: T x p measurements matrix.
         - K: T x p mask matrix of known measurements.
-        - M: T x p mask matrix of missing measurements.
         - lam: regularization parameter.
-        - niter: Number of iterations.
-        - lr: Initial learning rate.
+        - M (optional): T x p mask matrix of missing measurements. Defaults to
+            dropping "fraction" of measurements. (Default=None)
+        - niter (optional): Number of iterations. (Default=200)
+        - lr (optional): Initial learning rate. (Default=1.0)
+        - fraction (optional): Fraction of measurements to drop. (Default=0.5)
+        - increase_rate (optional): Rate to increase learning rate. (Default=1.5)
+        - decrease_rate (optional): Rate to decrease learning rate. (Default=0.5)
+        - verbose (optional): Whether or not to print iterations. (Default=True)
+        - callback (optional): Callback function to be called every iteration. (Default=None)
     Returns:
         - parameters: KalmanSmootherParameters result.
         - info: dictionary of results.
@@ -39,10 +46,21 @@ def tune(initial_parameters, prox, y, K, M, lam, niter=200, lr=1.0, fraction=0.5
 
     parameters = copy.deepcopy(initial_parameters)
 
-    M = np.zeros(T * p, dtype=int)
-    M[:int(fraction * T * p)] = 1
-    np.random.shuffle(M)
-    M = M.astype(bool).reshape((T, p))
+    if M is None:
+        M = np.zeros(T * p, dtype=int)
+        M[:int(fraction * T * p)] = 1
+        np.random.shuffle(M)
+        M = M.astype(bool).reshape((T, p))
+    
+    np.testing.assert_array_equal(initial_parameters.A.shape, (n, n))
+    np.testing.assert_array_equal(initial_parameters.W_neg_sqrt.shape, (n, n))
+    np.testing.assert_array_equal(initial_parameters.C.shape, (p, n))
+    np.testing.assert_array_equal(initial_parameters.V_neg_sqrt.shape, (p, p))
+    np.testing.assert_array_equal(M.shape, (T, p))
+    np.testing.assert_array_equal(K.shape, (T, p))
+
+    assert K.sum() > 0, "Must know at least one measurement."
+    assert M.sum() > 0, "Must be at least one missing measurement."
 
     info = dict()
     info["losses"] = []
