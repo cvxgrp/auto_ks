@@ -44,7 +44,7 @@ def prof(n, p, T, num=10):
 
 if __name__ == '__main__':
 
-    for T in [10, 100, 1_000, 10_000, 100_000]:
+    for T in [10, 100, 1_000, 10_000]:
         fwd_mean, fwd_std, bkwd_mean, bkwd_std = prof(10, 10, T)
 
         print("%d & %.1f $\\pm$ %.1f & %.1f $\\pm$ %.1f \\\\" %

@@ -77,32 +77,40 @@ def kalman_smoother(kalman_smoother_parameters, y, K, lam):
         - yhat: output trajectory
         - DT: function that computes derivative
     """
+    T, p = y.shape
+    assert y.ndim == 2
+    assert type(y) is np.ndarray
+    np.testing.assert_array_equal(y.shape, (T, p))
+
+    solve, DT = _kalman_smoother(kalman_smoother_parameters, K, lam)
+    xhat, yhat, z = solve(y)
+    def DT1(dxhat=np.zeros(xhat.shape), dyhat=np.zeros(yhat.shape)):
+        return DT(z, dxhat=dxhat, dyhat=dyhat)
+    return xhat, yhat, DT1 
+
+def _kalman_smoother(kalman_smoother_parameters, K, lam):
+    """
+    minimize    ||Dz||^2
+    subject to  Bz=c
+
+    Args:
+        - kalman_smoother_paramters: KalmanSmootherParameters object.
+        - K: T x p boolean output mask
+        - lam: float, scale of Tikhonov regularization
+
+    Returns:
+        - solve: a method that takes one argument: y, and smooths it
+        - DT: function that computes derivative
+    """
     A = kalman_smoother_parameters.A
     W_neg_sqrt = kalman_smoother_parameters.W_neg_sqrt
     C = kalman_smoother_parameters.C
     V_neg_sqrt = kalman_smoother_parameters.V_neg_sqrt
 
-    assert type(A) is np.ndarray or type(A) is np.matrix
-    assert type(W_neg_sqrt) is np.ndarray or type(W_neg_sqrt) is np.matrix
-    assert type(C) is np.ndarray or type(C) is np.matrix
-    assert type(V_neg_sqrt) is np.ndarray or type(V_neg_sqrt) is np.matrix
-    assert type(y) is np.ndarray
-    assert type(K) is np.ndarray
-    assert isinstance(lam, numbers.Number) 
-    assert y.ndim == 2
-    assert A.ndim == 2
-
-    T, p = y.shape
+    T, _ = K.shape
     n, _ = A.shape
+    p = V_neg_sqrt.shape[0]
     z_size = (n + p) * T
-
-    np.testing.assert_array_equal(A.shape, (n, n))
-    np.testing.assert_array_equal(A.shape, (n, n))
-    np.testing.assert_array_equal(W_neg_sqrt.shape, (n, n))
-    np.testing.assert_array_equal(C.shape, (p, n))
-    np.testing.assert_array_equal(V_neg_sqrt.shape, (p, p))
-    np.testing.assert_array_equal(y.shape, (T, p))
-    np.testing.assert_array_equal(K.shape, (T, p))
 
     # First we form the least squares coefficient matrix D
     D = get_D(A, W_neg_sqrt, C, V_neg_sqrt, n, p, T, lam)
@@ -111,13 +119,29 @@ def kalman_smoother(kalman_smoother_parameters, y, K, lam):
     D_rows, D_cols = D_full.nonzero()
     del D_full
 
+    assert type(A) is np.ndarray or type(A) is np.matrix
+    assert type(W_neg_sqrt) is np.ndarray or type(W_neg_sqrt) is np.matrix
+    assert type(C) is np.ndarray or type(C) is np.matrix
+    assert type(V_neg_sqrt) is np.ndarray or type(V_neg_sqrt) is np.matrix
+    assert type(K) is np.ndarray
+    assert isinstance(lam, numbers.Number) 
+    assert A.ndim == 2
+
+
+    np.testing.assert_array_equal(A.shape, (n, n))
+    np.testing.assert_array_equal(A.shape, (n, n))
+    np.testing.assert_array_equal(W_neg_sqrt.shape, (n, n))
+    np.testing.assert_array_equal(C.shape, (p, n))
+    np.testing.assert_array_equal(V_neg_sqrt.shape, (p, p))
+    np.testing.assert_array_equal(K.shape, (T, p))
+
     # Next we form the coefficients of the equality constraint
     rows, cols = K.nonzero()
-    c = y[K]
-    S = sparse.csc_matrix((np.ones(c.size), (np.arange(
-        c.size), rows * p + cols)), shape=(c.shape[0], T * p))
+    c_size = K.sum()
+    S = sparse.csc_matrix((np.ones(c_size), (np.arange(
+        c_size), rows * p + cols)), shape=(c_size, T * p))
     B = sparse.bmat([
-        [sparse.csc_matrix((c.size, T * n)), S]
+        [sparse.csc_matrix((c_size, T * n)), S]
     ])
 
     # Next we form the KKT matrix
@@ -130,20 +154,27 @@ def kalman_smoother(kalman_smoother_parameters, y, K, lam):
     # And factorize it
     solve = splinalg.factorized(M)
 
-    # And solve for z
-    rhs = np.concatenate([np.zeros(z_size), np.zeros(D.shape[0]), c])
-    sol = solve(rhs)
-    z = sol[:z_size]
+    def smooth(y):
+        c = y[K]
+        # And solve for z
+        rhs = np.concatenate([np.zeros(z_size), np.zeros(D.shape[0]), c])
+        sol = solve(rhs)
+        z = sol[:z_size]
+
+        xhat = z[:T * n].reshape(T, n, order='C')
+        yhat = z[T * n:T * (n + p)].reshape(T, p, order='C')
+
+        return xhat, yhat, z
 
     # This function implements the derivative
-    def DT(dxhat=np.zeros((T, n)), dyhat=np.zeros((T, p))):
+    def DT(z, dxhat=np.zeros((T, n)), dyhat=np.zeros((T, p))):
         """
         Args:
             - dxhat: T x n output trajectory
             - dyhat: T x p output trajectory
         """
         g = np.concatenate(
-            [dxhat.flatten(order='C'), dyhat.flatten(order='C'), np.zeros(D.shape[0]), np.zeros(c.size)])
+            [dxhat.flatten(order='C'), dyhat.flatten(order='C'), np.zeros(D.shape[0]), np.zeros(c_size)])
         dsol = -solve(g)[:z_size]
 
         values = (D @ z)[D_rows] * dsol[D_cols] + (D @ dsol)[D_rows] * z[D_cols]
@@ -183,7 +214,4 @@ def kalman_smoother(kalman_smoother_parameters, y, K, lam):
 
         return KalmanSmootherParameterDerivatives(DA, DW_neg_sqrt, DC, DV_neg_sqrt)
 
-    xhat = z[:T * n].reshape(T, n, order='C')
-    yhat = z[T * n:T * (n + p)].reshape(T, p, order='C')
-
-    return xhat, yhat, DT
+    return smooth, DT
