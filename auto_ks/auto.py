@@ -161,7 +161,7 @@ def tune_forecast(initial_parameters, prox, y, lam, num_splits=20, num_known=20,
             return L
 
     for k in range(1, niter + 1):
-        L, derivatives, xhat, yhat = prediction_loss_forecast(parameters, y, grad=True)
+        L, derivatives, yhat, xhat = prediction_loss_forecast(parameters, y, grad=True)
         _, r = prox(parameters, lr)
         L += r
         if callback is not None:
