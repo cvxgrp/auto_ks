@@ -28,6 +28,7 @@ for _ in range(T):
 
 ys_test = np.array(ys_test)
 
+np.random.seed(0)
 parameters = auto_ks.KalmanSmootherParameters(np.random.randn(n, n),
 	np.eye(n) * .5,
 	np.random.randn(m, n),
@@ -40,4 +41,15 @@ def callback(k, yhat, parameters, prediction_loss_forecast):
 	print("TEST", prediction_loss_forecast(parameters, ys_test))
 
 parameters, info, prediction_loss_forecast = auto_ks.tune_forecast(parameters, prox, ys, 1e-4, num_splits=20,
-	num_known=20, num_unknown=1, niter=100, callback=callback)
+	num_known=20, num_unknown=1, niter=10, callback=callback)
+
+np.random.seed(0)
+parameters = auto_ks.KalmanSmootherParameters(np.random.randn(n, n),
+	np.eye(n) * .5,
+	np.random.randn(m, n),
+	np.eye(m) * .5)
+
+def loss_torch(yhat, y, M):
+	return ((yhat - y) * M).pow(2).sum() / M.sum()
+parameters, info, prediction_loss_forecast = auto_ks.tune_forecast_pytorch(parameters, prox, ys, 1e-4, loss_torch, num_splits=20,
+	num_known=20, num_unknown=1, niter=10, callback=callback)
