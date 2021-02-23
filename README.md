@@ -4,9 +4,9 @@ Implementation of the paper ["Fitting a Kalman Smoother to Data"](http://web.sta
 
 ## Installation
 
-To install, clone the repository and run:
+To install, run:
 ```bash
-pip install .
+pip install git+https://github.com/cvxgrp/auto_ks.git
 ```
 
 Install extra packages to run the examples:
