@@ -83,10 +83,12 @@ python human_migration.py
 ## Citing
 If you use `auto_ks` in your research, please consider citing our paper:
 ```
-@article{barratt2019fitting,
-  title={Fitting a Kalman Smoother to Data},
-  author={Barratt, Shane and Boyd, Stephen},
-  journal={arXiv preprint arXiv:1910.08615},
-  year={2019}
-}
+@INPROCEEDINGS{9147485,
+  author={Barratt, Shane T. and Boyd, Stephen P.},
+  booktitle={2020 American Control Conference (ACC)}, 
+  title={Fitting a Kalman Smoother to Data}, 
+  year={2020},
+  pages={1526-1531},
+  keywords={Kalman filters;Covariance matrices;Smoothing methods;Tuning;Optimization;Trajectory;Measurement uncertainty},
+  doi={10.23919/ACC45564.2020.9147485}}
 ```
